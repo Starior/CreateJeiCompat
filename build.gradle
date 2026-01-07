@@ -32,7 +32,7 @@ repositories {
     maven { url = "https://mvn.devos.one/snapshots" }
     maven { url = "https://maven.blamejared.com" } // JEI
     flatDir {
-        dirs 'c:/mc'
+        dirs 'c:/mc/jars'
     }
 }
 
@@ -50,13 +50,13 @@ dependencies {
     if (createDevJar.exists()) {
         compileOnly files(createDevJar)
     } else {
-        compileOnly files('c:/mc/create-1.21.1-6.0.8.jar')
+        compileOnly files('c:/mc/jars/create-1.21.1-6.0.8.jar')
     }
-    compileOnly files('c:/mc/jei-1.21.1-neoforge-19.27.0.336.jar')
+    compileOnly files('c:/mc/jars/jei-1.21.1-neoforge-19.27.0.336.jar')
     
     // Also add as implementation for runtime
-    implementation files('c:/mc/jei-1.21.1-neoforge-19.27.0.336.jar')
-    implementation files('c:/mc/create-1.21.1-6.0.8.jar')
+    implementation files('c:/mc/jars/jei-1.21.1-neoforge-19.27.0.336.jar')
+    implementation files('c:/mc/jars/create-1.21.1-6.0.8.jar')
     
     // Mixin
     compileOnly 'org.spongepowered:mixin:0.8.5'

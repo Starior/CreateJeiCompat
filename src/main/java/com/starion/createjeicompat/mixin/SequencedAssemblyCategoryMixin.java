@@ -40,10 +40,30 @@ import java.util.Map;
 public abstract class SequencedAssemblyCategoryMixin {
 
     @Unique
-    private static final String[] EXTENDED_ROMANS = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII"};
-
-    @Unique
     private static final int STEP_MARGIN = 3;
+    
+    /**
+     * Convert a number to Roman numeral string.
+     * Supports numbers from 1 to 3999 (MMMCMXCIX).
+     * For numbers outside this range, returns Arabic numeral string.
+     */
+    @Unique
+    private static String toRomanNumeral(int number) {
+        if (number < 1 || number > 3999) {
+            return String.valueOf(number);
+        }
+        
+        // Roman numeral components for each digit place
+        String[] thousands = {"", "M", "MM", "MMM"};
+        String[] hundreds = {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"};
+        String[] tens = {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"};
+        String[] ones = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"};
+        
+        return thousands[number / 1000] +
+               hundreds[(number % 1000) / 100] +
+               tens[(number % 100) / 10] +
+               ones[number % 10];
+    }
 
     @Shadow(remap = false)
     Map<ResourceLocation, SequencedAssemblySubCategory> subCategories;
@@ -199,9 +219,8 @@ public abstract class SequencedAssemblyCategoryMixin {
             SequencedRecipe<?> sequencedRecipe = sequence.get(i);
             SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequencedRecipe);
             int subWidth = subCategory.getWidth();
-            // Cache component creation - reuse string index
-            int romanIndex = Math.min(i, EXTENDED_ROMANS.length - 1);
-            MutableComponent component = Component.literal(EXTENDED_ROMANS[romanIndex]);
+            // Use dynamic Roman numeral conversion (supports any number of steps)
+            MutableComponent component = Component.literal(toRomanNumeral(i + 1));
             graphics.drawString(font, component, font.width(component) / -2 + subWidth / 2, 2, 0x888888, false);
             subCategory.draw(sequencedRecipe, graphics, mouseX - x, mouseY, i);
             graphics.pose().translate(subWidth + STEP_MARGIN, 0, 0);

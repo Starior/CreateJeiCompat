@@ -32,6 +32,31 @@ public class SequencedAssemblyPageManager {
     }
     
     /**
+     * Check if scroll can be handled for a sequenced assembly recipe.
+     * @return true if scroll can be handled (not at boundary), false otherwise
+     */
+    public static boolean canScroll(SequencedAssemblyRecipe recipe, double scrollDelta) {
+        if (recipe == null) {
+            return false;
+        }
+        
+        int totalSteps = recipe.getSequence().size();
+        int totalPages = calculateTotalPages(totalSteps);
+        if (totalPages <= 1) {
+            return false;
+        }
+
+        int currentPage = getCurrentPage(recipe);
+        // Check if we can scroll in the requested direction
+        if (scrollDelta > 0) {
+            return currentPage > 0; // Can scroll up
+        } else if (scrollDelta < 0) {
+            return currentPage < totalPages - 1; // Can scroll down
+        }
+        return false;
+    }
+    
+    /**
      * Handle scroll for a sequenced assembly recipe.
      * @return true if scroll was handled, false otherwise
      */

@@ -91,6 +91,15 @@ public abstract class RecipesGuiMixin {
                 }
                 
                 if (sequencedRecipe != null) {
+                    // Check if we can scroll (not at boundary)
+                    boolean canScroll = SequencedAssemblyPageManager.canScroll(sequencedRecipe, scrollY);
+                    
+                    // If we're at a boundary (can't scroll), cancel the event to prevent JEI scrolling
+                    if (!canScroll) {
+                        cir.setReturnValue(true);
+                        return;
+                    }
+                    
                     // Handle scroll for sequenced assembly recipe
                     if (SequencedAssemblyPageManager.handleScroll(sequencedRecipe, scrollY)) {
                         // Invalidate the layout cache in RecipeGuiLogic to force recreation

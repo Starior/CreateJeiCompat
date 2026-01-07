@@ -12,7 +12,8 @@ This mod is licensed under the MIT License. See [LICENSE](LICENSE) file for deta
 - **Scroll Navigation**: Use mouse scroll wheel to navigate between pages
 - **Page Indicator**: Shows current page number (e.g., "1/2") in the bottom-right corner
 - **Automatic Slot Updates**: Recipe slots automatically update when scrolling between pages
-- **Supports up to 18 steps**: Uses Roman numerals (I-XVIII) to label recipe steps
+- **Unlimited Steps Support**: Uses dynamic Roman numeral conversion (I, II, III... up to MMMCMXCIX) to label recipe steps
+- **Smart Scroll Handling**: Prevents JEI page scrolling when cursor is over recipe at page boundaries
 
 ## Installation
 
