@@ -1,0 +1,3 @@
+- This is a NeoForge mod for Minecraft 1.21.1 that adds JEI compatibility for Create mod.
+- The mod enhances sequenced assembly recipes display with up to 18 steps and pagination.
+- Key files: CreateJeiCompatMod.java, CreateJeiCompatJEI.java, ModifiedSequencedAssemblyCategory.java

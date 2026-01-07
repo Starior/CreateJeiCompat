@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.starion.createjeicompat.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "mixins.createjeicompat.refmap.json",
+  "mixins": [
+    "SequencedAssemblyCategoryMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

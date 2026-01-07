@@ -1,0 +1,103 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.170'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = '1.0.0'
+group = 'com.starion.createjeicompat'
+
+base {
+    archivesName = 'createjeicompat'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenLocal()
+    maven {
+        name = 'Curseforge Maven'
+        url = "https://www.cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    maven { url = "https://maven.createmod.net" } // Create mod and catnip
+    maven { url = "https://mvn.devos.one/snapshots" }
+    maven { url = "https://maven.blamejared.com" } // JEI
+    flatDir {
+        dirs 'c:/mc'
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:21.1.73"
+
+    // JEI and Create mods - using local files
+    // These are provided at runtime, but we need them for compilation
+    // Use Create dev JAR first (should have catnip), then fallback to release JAR
+    def createDevJar = file('c:/mc/Create-mc1.21.1-dev/build/libs/create-1.21.1-6.0.10.jar')
+    if (createDevJar.exists()) {
+        compileOnly files(createDevJar)
+    } else {
+        compileOnly files('c:/mc/create-1.21.1-6.0.8.jar')
+    }
+    compileOnly files('c:/mc/jei-1.21.1-neoforge-19.27.0.336.jar')
+    
+    // Also add as implementation for runtime
+    implementation files('c:/mc/jei-1.21.1-neoforge-19.27.0.336.jar')
+    implementation files('c:/mc/create-1.21.1-6.0.8.jar')
+    
+    // Mixin
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : '1.21.1',
+            minecraft_version_range: '[1.21.1]',
+            neo_version            : '21.1.73',
+            neo_version_range      : '[21.1.73,)',
+            loader_version_range   : '[4,)',
+            mod_id                 : 'createjeicompat',
+            mod_name               : 'Create JEI Compat',
+            mod_license            : 'MIT',
+            mod_version            : '1.0.0',
+            mod_authors            : 'Starion',
+            mod_description        : 'JEI compatibility mod for Create mod with enhanced sequenced assembly display'
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    // Exclude stub classes from the final JAR - they're only for compilation
+    exclude 'net/**'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
