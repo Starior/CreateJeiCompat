@@ -22,7 +22,7 @@ license="MIT" #mandatory
 modId="createjeicompat" #mandatory
 
 # The version number of the mod
-version="1.0.0" #mandatory
+version="${mod_version}" #mandatory
 
 # A display name for the mod
 displayName="Create JEI Compat" #mandatory
