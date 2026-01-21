@@ -1,5 +1,15 @@
 package com.starion.createjeicompat.mixin;
 
+/**
+ * Mixin for JEI's RecipesGui that adds scroll handling for sequenced assembly recipes.
+ * 
+ * This mixin intercepts mouse scroll events in JEI's recipe GUI to enable pagination
+ * for Create mod's sequenced assembly recipes. It works in conjunction with
+ * SequencedAssemblyCategoryMixin to provide the pagination feature.
+ * 
+ * JEI (Just Enough Items): https://github.com/mezz/JustEnoughItems
+ * License: MIT (compatible with this mod's MIT license)
+ */
 import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe;
 import com.starion.createjeicompat.SequencedAssemblyPageManager;
 import mezz.jei.gui.recipes.RecipesGui;

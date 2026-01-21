@@ -1,5 +1,17 @@
 package com.starion.createjeicompat.mixin;
 
+/**
+ * Mixin for SequencedAssemblyCategory that adds pagination support.
+ * 
+ * This mixin overwrites methods from Create mod's SequencedAssemblyCategory class
+ * (com.simibubi.create.compat.jei.category.SequencedAssemblyCategory) to add
+ * pagination functionality. The base implementation logic is based on the original
+ * Create mod code, extended with pagination features.
+ * 
+ * Original Create mod code: https://github.com/Creators-of-Create/Create
+ * JEI (Just Enough Items): https://github.com/mezz/JustEnoughItems
+ * Both use MIT license (compatible with this mod's MIT license)
+ */
 import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
 import com.simibubi.create.compat.jei.category.SequencedAssemblyCategory;
 import com.simibubi.create.compat.jei.category.sequencedAssembly.SequencedAssemblySubCategory;

@@ -2,6 +2,8 @@
 
 A compatibility mod for Create and JEI that enhances the display of sequenced assembly recipes in JEI.
 
+This mod extends the functionality of [Create mod](https://github.com/Creators-of-Create/Create) and [JEI (Just Enough Items)](https://github.com/mezz/JustEnoughItems) by adding pagination support to sequenced assembly recipe displays in JEI. The implementation uses Mixin to enhance Create mod's `SequencedAssemblyCategory` class with pagination features.
+
 ## License
 
 This mod is licensed under the MIT License. See [LICENSE](LICENSE) file for details.

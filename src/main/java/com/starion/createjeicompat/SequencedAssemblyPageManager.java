@@ -5,8 +5,11 @@ import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe;
 import java.util.WeakHashMap;
 
 /**
- * Manages pagination state for sequenced assembly recipes.
+ * Manages pagination state for sequenced assembly recipes from Create mod.
  * This is a separate utility class to avoid Mixin class loading issues.
+ * 
+ * This class works with SequencedAssemblyCategoryMixin to provide pagination
+ * functionality for Create mod's sequenced assembly recipes displayed in JEI.
  */
 public class SequencedAssemblyPageManager {
     
