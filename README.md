@@ -17,14 +17,6 @@ This mod is licensed under the MIT License. See [LICENSE](LICENSE) file for deta
 - **Unlimited Steps Support**: Uses dynamic Roman numeral conversion (I, II, III... up to MMMCMXCIX) to label recipe steps
 - **Smart Scroll Handling**: Prevents JEI page scrolling when cursor is over recipe at page boundaries
 
-## Installation
-
-1. Install Minecraft 1.21.1
-2. Install NeoForge
-3. Install Create mod (version 6.0.0 or above)
-4. Install JEI
-5. Place this mod in your mods folder
-
 ## Usage
 
 When viewing a sequenced assembly recipe in JEI that has more than 6 steps:
