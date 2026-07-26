@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1-beta] - 2026-07-26
+
+### Fixed
+- Replace `@Overwrite` on sequenced-assembly JEI methods with MixinExtras `@WrapMethod` so Create: Cyber Goggles can still apply its `setRecipe*` TAIL inject (scrap outputs) alongside pagination
+
 ## [1.0.0] - 2025-02-28
 
 ### Added
