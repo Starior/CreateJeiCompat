@@ -3,13 +3,13 @@
   "minVersion": "0.8",
   "package": "com.starion.createjeicompat.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-  ],
+  "plugin": "com.starion.createjeicompat.mixin.CreateJeiCompatMixinPlugin",
   "client": [
     "SequencedAssemblyCategoryMixin",
-    "RecipesGuiMixin"
+    "RecipesGuiMixin",
+    "CreateJeiRecipeHeightMixin"
   ],
   "injectors": {
-    "defaultRequire": 1
+    "defaultRequire": 0
   }
 }

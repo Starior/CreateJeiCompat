@@ -39,7 +39,7 @@ public abstract class RecipesGuiMixin {
     private static java.lang.reflect.Method cachedUpdateLayoutMethod;
     private static final Object CACHE_LOCK = new Object();
 
-    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void createjeicompat$onMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
         if (layouts == null) {
             return;

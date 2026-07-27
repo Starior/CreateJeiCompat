@@ -5,99 +5,72 @@ import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe;
 import java.util.WeakHashMap;
 
 /**
- * Manages pagination state for sequenced assembly recipes from Create mod.
- * This is a separate utility class to avoid Mixin class loading issues.
- * 
- * This class works with SequencedAssemblyCategoryMixin to provide pagination
- * functionality for Create mod's sequenced assembly recipes displayed in JEI.
+ * Pagination state for sequenced assembly recipes shown in JEI/EMI.
  */
 public class SequencedAssemblyPageManager {
-    
+
     private static final int STEPS_PER_PAGE = 6;
     private static final WeakHashMap<SequencedAssemblyRecipe, Integer> currentPageMap = new WeakHashMap<>();
-    
-    /**
-     * Get current page for a recipe (0-indexed).
-     */
-    public static int getCurrentPage(SequencedAssemblyRecipe recipe) {
-        return currentPageMap.getOrDefault(recipe, 0);
-    }
-    
-    /**
-     * Set current page for a recipe.
-     */
-    public static void setCurrentPage(SequencedAssemblyRecipe recipe, int page) {
-        int totalSteps = recipe.getSequence().size();
-        int totalPages = calculateTotalPages(totalSteps);
-        if (totalPages > 0) {
-            currentPageMap.put(recipe, Math.max(0, Math.min(page, totalPages - 1)));
-        }
-    }
-    
-    /**
-     * Check if scroll can be handled for a sequenced assembly recipe.
-     * @return true if scroll can be handled (not at boundary), false otherwise
-     */
-    public static boolean canScroll(SequencedAssemblyRecipe recipe, double scrollDelta) {
-        if (recipe == null) {
-            return false;
-        }
-        
-        int totalSteps = recipe.getSequence().size();
-        int totalPages = calculateTotalPages(totalSteps);
-        if (totalPages <= 1) {
-            return false;
-        }
 
+    public static int getStepsPerPage() {
+        return STEPS_PER_PAGE;
+    }
+
+    public static int getTotalPages(SequencedAssemblyRecipe recipe) {
+        return Math.max(1, (int) Math.ceil(recipe.getSequence().size() / (double) STEPS_PER_PAGE));
+    }
+
+    public static int getCurrentPage(SequencedAssemblyRecipe recipe) {
+        int page = currentPageMap.getOrDefault(recipe, 0);
+        return Math.max(0, Math.min(page, getTotalPages(recipe) - 1));
+    }
+
+    public static void setCurrentPage(SequencedAssemblyRecipe recipe, int page) {
+        currentPageMap.put(recipe, Math.max(0, Math.min(page, getTotalPages(recipe) - 1)));
+    }
+
+    public static boolean previousPage(SequencedAssemblyRecipe recipe) {
+        int current = getCurrentPage(recipe);
+        if (current <= 0) {
+            return false;
+        }
+        setCurrentPage(recipe, current - 1);
+        return true;
+    }
+
+    public static boolean nextPage(SequencedAssemblyRecipe recipe) {
+        int current = getCurrentPage(recipe);
+        if (current >= getTotalPages(recipe) - 1) {
+            return false;
+        }
+        setCurrentPage(recipe, current + 1);
+        return true;
+    }
+
+    public static boolean canScroll(SequencedAssemblyRecipe recipe, double scrollDelta) {
+        if (recipe == null || getTotalPages(recipe) <= 1) {
+            return false;
+        }
         int currentPage = getCurrentPage(recipe);
-        // Check if we can scroll in the requested direction
         if (scrollDelta > 0) {
-            return currentPage > 0; // Can scroll up
-        } else if (scrollDelta < 0) {
-            return currentPage < totalPages - 1; // Can scroll down
+            return currentPage > 0;
+        }
+        if (scrollDelta < 0) {
+            return currentPage < getTotalPages(recipe) - 1;
         }
         return false;
     }
-    
-    /**
-     * Handle scroll for a sequenced assembly recipe.
-     * @return true if scroll was handled, false otherwise
-     */
+
     public static boolean handleScroll(SequencedAssemblyRecipe recipe, double scrollDelta) {
         if (recipe == null) {
             return false;
         }
-        
-        int totalSteps = recipe.getSequence().size();
-        int totalPages = calculateTotalPages(totalSteps);
-        if (totalPages <= 1) {
-            return false;
+        if (scrollDelta > 0) {
+            return previousPage(recipe);
         }
-
-        int currentPage = getCurrentPage(recipe);
-        if (scrollDelta > 0 && currentPage > 0) {
-            setCurrentPage(recipe, currentPage - 1);
-            return true;
-        } else if (scrollDelta < 0 && currentPage < totalPages - 1) {
-            setCurrentPage(recipe, currentPage + 1);
-            return true;
+        if (scrollDelta < 0) {
+            return nextPage(recipe);
         }
         return false;
     }
-    
-    /**
-     * Calculate total pages for given number of steps.
-     * Extracted to avoid code duplication.
-     */
-    private static int calculateTotalPages(int totalSteps) {
-        return (int) Math.ceil(totalSteps / (double) STEPS_PER_PAGE);
-    }
-    
-    /**
-     * Get steps per page constant.
-     */
-    public static int getStepsPerPage() {
-        return STEPS_PER_PAGE;
-    }
 }
-
