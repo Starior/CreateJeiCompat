@@ -24,18 +24,27 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.createjeicompat]]
-modId="jei"
-mandatory=true
-versionRange="[15.0.0,)"
-ordering="NONE"
-side="BOTH"
-
-[[dependencies.createjeicompat]]
 modId="mixinextras"
 mandatory=true
 versionRange="[0.3.6,)"
 ordering="NONE"
 side="BOTH"
+
+# JEI is required: Create's sequenced-assembly UI is a JEI category; EMI shows it via JEmi.
+[[dependencies.createjeicompat]]
+modId="jei"
+mandatory=true
+versionRange="[15.0.0,)"
+ordering="NONE"
+side="CLIENT"
+
+# Optional: same JEI category is wrapped by EMI's JEmi layer when EMI is installed.
+[[dependencies.createjeicompat]]
+modId="emi"
+mandatory=false
+versionRange="[1.1.0,)"
+ordering="NONE"
+side="CLIENT"
 
 [[mixins]]
 config="createjeicompat.mixins.json"

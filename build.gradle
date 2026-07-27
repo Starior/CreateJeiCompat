@@ -64,6 +64,7 @@ repositories {
     maven { url = "https://maven.createmod.net" }
     maven { url = "https://maven.ithundxr.dev/mirror" }
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
+    maven { name = "Sleeping Town"; url = "https://repo.sleeping.town/" }
     flatDir { dirs 'c:/mc/jars', 'c:/mc/forge' }
 }
 
@@ -98,8 +99,16 @@ def jeiJar = jeiBuiltJar ?: file('c:/mc/forge/jei-1.20.1-forge-15.20.0.129.jar')
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
+    // Ponder/catnip API for Create-style BaseConfigScreen (also jarjar'd inside Create at runtime).
+    def ponderJar = file("c:/mc/forge/Ponder-Forge-${minecraft_version}-${ponder_version}.jar")
+
     if (createJar.exists()) {
         implementation(project.files(createJar))
+        if (ponderJar.exists()) {
+            compileOnly(project.files(ponderJar))
+        } else {
+            compileOnly(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"))
+        }
     } else {
         implementation(fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false })
         implementation(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"))
@@ -117,6 +126,9 @@ dependencies {
         compileOnly(fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}"))
         runtimeOnly(fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}"))
     }
+
+    // Optional at runtime; compileOnly so EMI-only code is gated by ModList + reflection
+    compileOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
 
     compileOnly 'org.spongepowered:mixin:0.8.5'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'

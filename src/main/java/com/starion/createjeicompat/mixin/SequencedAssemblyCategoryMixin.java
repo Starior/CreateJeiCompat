@@ -1,29 +1,36 @@
 package com.starion.createjeicompat.mixin;
 
 /**
- * Mixin for SequencedAssemblyCategory that adds pagination support.
+ * Pagination for Create's SequencedAssemblyCategory (JEI), also used by EMI via JEmi.
  *
- * Uses MixinExtras {@code @WrapMethod} (not {@code @Overwrite}) so other mods can still
- * inject into the same methods — e.g. CreateCyberGoggles' {@code setRecipe*} TAIL inject
- * for scrap outputs. Skipping {@code original.call()} replaces Create's body; TAIL injects
- * still run after this wrapper returns.
+ * Uses MixinExtras {@code @WrapMethod} (not {@code @Overwrite}). Other mods' injects into
+ * {@code setRecipe} live inside {@code original}; we do not call it (would duplicate Create's
+ * layout), so Cyber Goggles scrap slots are re-added here when the category height is expanded.
+ *
+ * Page changes: mouse wheel (JEI + EMI), on-screen {@code < 1/N >} controls, and
+ * Up/Down/Left/Right keys (JEI + EMI both forward those through {@code IRecipeCategory#handleInput}).
  *
  * Original Create mod code: https://github.com/Creators-of-Create/Create
- * JEI (Just Enough Items): https://github.com/mezz/JustEnoughItems
- * Both use MIT license (compatible with this mod's MIT license)
+ * JEI: https://github.com/mezz/JustEnoughItems
+ * EMI: https://github.com/emilyploszaj/emi
  */
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
 import com.simibubi.create.compat.jei.category.SequencedAssemblyCategory;
 import com.simibubi.create.compat.jei.category.sequencedAssembly.SequencedAssemblySubCategory;
+import com.simibubi.create.content.processing.recipe.ProcessingOutput;
 import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe;
 import com.simibubi.create.content.processing.sequenced.SequencedRecipe;
 import com.simibubi.create.foundation.fluid.FluidIngredient;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.AllIcons;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.starion.createjeicompat.PageControls;
+import com.starion.createjeicompat.RecipeViewerRefresh;
 import com.starion.createjeicompat.SequencedAssemblyPageManager;
+import com.starion.createjeicompat.config.CJCConfigs;
 import mezz.jei.api.forge.ForgeTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
@@ -39,6 +46,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraftforge.fml.ModList;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -54,26 +63,19 @@ public abstract class SequencedAssemblyCategoryMixin {
     @Unique
     private static final int STEP_MARGIN = 3;
 
-    /**
-     * Convert a number to Roman numeral string.
-     * Supports numbers from 1 to 3999 (MMMCMXCIX).
-     * For numbers outside this range, returns Arabic numeral string.
-     */
     @Unique
     private static String toRomanNumeral(int number) {
         if (number < 1 || number > 3999) {
             return String.valueOf(number);
         }
-
         String[] thousands = {"", "M", "MM", "MMM"};
         String[] hundreds = {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"};
         String[] tens = {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"};
         String[] ones = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"};
-
-        return thousands[number / 1000] +
-               hundreds[(number % 1000) / 100] +
-               tens[(number % 100) / 10] +
-               ones[number % 10];
+        return thousands[number / 1000]
+                + hundreds[(number % 1000) / 100]
+                + tens[(number % 100) / 10]
+                + ones[number % 10];
     }
 
     @Shadow
@@ -96,10 +98,18 @@ public abstract class SequencedAssemblyCategoryMixin {
         return cachedBackground;
     }
 
-    /**
-     * Paginated setRecipe. Does not call {@code original} (skips Create's body).
-     * CreateCyberGoggles can still TAIL-inject {@code setRecipe*} after this returns.
-     */
+    @Unique
+    private void registerInvisible(IRecipeLayoutBuilder builder, SequencedRecipe<?> sequencedRecipe) {
+        NonNullList<Ingredient> sequencedIngredients = sequencedRecipe.getRecipe().getIngredients();
+        for (Ingredient ingredient : sequencedIngredients.subList(1, sequencedIngredients.size())) {
+            builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(ingredient);
+        }
+        for (FluidIngredient fluidIngredient : sequencedRecipe.getRecipe().getFluidIngredients()) {
+            builder.addInvisibleIngredients(RecipeIngredientRole.INPUT)
+                    .addIngredients(ForgeTypes.FLUID_STACK, fluidIngredient.getMatchingFluidStacks());
+        }
+    }
+
     @WrapMethod(
             method = "setRecipe(Lmezz/jei/api/gui/builder/IRecipeLayoutBuilder;Lcom/simibubi/create/content/processing/sequenced/SequencedAssemblyRecipe;Lmezz/jei/api/recipe/IFocusGroup;)V"
     )
@@ -116,11 +126,10 @@ public abstract class SequencedAssemblyCategoryMixin {
                 .setBackground(CreateRecipeCategory.getRenderedSlot(recipe.getOutputChance()), -1, -1)
                 .addItemStack(CreateRecipeCategory.getResultItem(recipe))
                 .addTooltipCallback((recipeSlotView, tooltip) -> {
-                    if (noRandomOutput)
+                    if (noRandomOutput) {
                         return;
-
-                    float chance = recipe.getOutputChance();
-                    tooltip.add(1, invokeChanceComponent(chance));
+                    }
+                    tooltip.add(1, invokeChanceComponent(recipe.getOutputChance()));
                 });
 
         List<SequencedRecipe<?>> sequence = recipe.getSequence();
@@ -132,31 +141,91 @@ public abstract class SequencedAssemblyCategoryMixin {
 
         int pageWidth = 0;
         for (int i = startIndex; i < endIndex; i++) {
-            SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequence.get(i));
-            pageWidth += subCategory.getWidth() + STEP_MARGIN;
+            pageWidth += invokeGetSubCategory(sequence.get(i)).getWidth() + STEP_MARGIN;
         }
         if (pageWidth > 0) {
             pageWidth -= STEP_MARGIN;
         }
 
-        int bgWidth = getBackgroundHelper().getWidth();
-        int x = bgWidth / 2 - pageWidth / 2;
-
-        for (int i = startIndex; i < endIndex; i++) {
+        int x = getBackgroundHelper().getWidth() / 2 - pageWidth / 2;
+        for (int i = 0; i < totalSteps; i++) {
             SequencedRecipe<?> sequencedRecipe = sequence.get(i);
-            SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequencedRecipe);
-            subCategory.setRecipe(builder, sequencedRecipe, focuses, x);
-            x += subCategory.getWidth() + STEP_MARGIN;
+            if (i >= startIndex && i < endIndex) {
+                SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequencedRecipe);
+                subCategory.setRecipe(builder, sequencedRecipe, focuses, x);
+                x += subCategory.getWidth() + STEP_MARGIN;
+            } else {
+                registerInvisible(builder, sequencedRecipe);
+            }
         }
 
         for (int i = 1; i < recipe.getLoops(); i++) {
             for (SequencedRecipe<?> sequencedRecipe : sequence) {
-                NonNullList<Ingredient> sequencedIngredients = sequencedRecipe.getRecipe().getIngredients();
-                for (Ingredient ingredient : sequencedIngredients.subList(1, sequencedIngredients.size()))
-                    builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(ingredient);
-                for (FluidIngredient fluidIngredient : sequencedRecipe.getRecipe().getFluidIngredients())
-                    builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(ForgeTypes.FLUID_STACK, fluidIngredient.getMatchingFluidStacks());
+                registerInvisible(builder, sequencedRecipe);
             }
+        }
+
+        // Cyber Goggles' setRecipe TAIL never runs under WrapMethod — only re-add scrap when CCG is present.
+        createjeicompat$addCyberGogglesScrapSlots(builder, recipe);
+    }
+
+    /**
+     * Replicates CreateCyberGoggles scrap slots (9/row, centered) when that mod is loaded and has
+     * expanded the category height for scrap. Without CCG we must not draw these slots.
+     */
+    @Unique
+    private void createjeicompat$addCyberGogglesScrapSlots(IRecipeLayoutBuilder builder, SequencedAssemblyRecipe recipe) {
+        if (!ModList.get().isLoaded("create_cyber_goggles") || recipe.resultPool.size() <= 1) {
+            return;
+        }
+        // Create default is 115; our emptyBackground +1 → 116. CCG scrap pad is taller (≈140).
+        if (getBackgroundHelper().getHeight() <= 116) {
+            return;
+        }
+        // 9 columns × 18px pitch; each row centered.
+        int cols = 9;
+        int pitchX = 18;
+        int pitchY = 19;
+        int originY = 114;
+        int scrapCount = recipe.resultPool.size() - 1;
+        int bgWidth = getBackgroundHelper().getWidth();
+        for (int i = 1; i < recipe.resultPool.size(); i++) {
+            final ProcessingOutput output = recipe.resultPool.get(i);
+            int slotIndex = i - 1;
+            int row = slotIndex / cols;
+            int col = slotIndex % cols;
+            int rowCount = Math.min(cols, scrapCount - row * cols);
+            int rowWidth = rowCount * pitchX;
+            int originX = (bgWidth - rowWidth) / 2;
+            builder.addSlot(
+                    RecipeIngredientRole.OUTPUT,
+                    col * pitchX + originX,
+                    row * pitchY + originY
+            )
+                    .setBackground(new IDrawable() {
+                        @Override
+                        public int getWidth() {
+                            return AllGuiTextures.JEI_CHANCE_SLOT.getWidth();
+                        }
+
+                        @Override
+                        public int getHeight() {
+                            return AllGuiTextures.JEI_CHANCE_SLOT.getHeight();
+                        }
+
+                        @Override
+                        public void draw(GuiGraphics guiGraphics, int xOffset, int yOffset) {
+                            AllGuiTextures.JEI_CHANCE_SLOT.render(guiGraphics, xOffset, yOffset);
+                        }
+                    }, -1, -1)
+                    .addItemStack(output.getStack())
+                    .addTooltipCallback((recipeSlotView, tooltip) -> {
+                        float totalWeight = 0;
+                        for (ProcessingOutput entry : recipe.resultPool) {
+                            totalWeight += entry.getChance();
+                        }
+                        tooltip.add(invokeChanceComponent(output.getChance() / totalWeight));
+                    });
         }
     }
 
@@ -196,13 +265,11 @@ public abstract class SequencedAssemblyCategoryMixin {
         int stepsPerPage = SequencedAssemblyPageManager.getStepsPerPage();
         int startIndex = currentPage * stepsPerPage;
         int endIndex = Math.min(startIndex + stepsPerPage, totalSteps);
-
-        int totalPages = (int) Math.ceil(totalSteps / (double) stepsPerPage);
+        int totalPages = SequencedAssemblyPageManager.getTotalPages(recipe);
 
         int pageWidth = 0;
         for (int i = startIndex; i < endIndex; i++) {
-            SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequence.get(i));
-            pageWidth += subCategory.getWidth() + STEP_MARGIN;
+            pageWidth += invokeGetSubCategory(sequence.get(i)).getWidth() + STEP_MARGIN;
         }
         if (pageWidth > 0) {
             pageWidth -= STEP_MARGIN;
@@ -229,13 +296,116 @@ public abstract class SequencedAssemblyCategoryMixin {
         graphics.pose().popPose();
 
         if (totalPages > 1) {
-            Component pageIndicator = Component.literal((currentPage + 1) + "/" + totalPages);
-            int indicatorX = bgWidth - font.width(pageIndicator);
-            int indicatorY = bgHeight - font.lineHeight;
-            graphics.drawString(font, pageIndicator, indicatorX, indicatorY, 0x888888, false);
+            drawPageControls(graphics, font, bgWidth, bgHeight, currentPage, totalPages, mouseX, mouseY);
         }
 
         graphics.pose().popPose();
+    }
+
+    /** Enabled/page text are dark; hover lightens a bit; disabled stays translucent. */
+    @Unique
+    private static final int PAGE_BTN_ENABLED = 0xFF666666;
+    @Unique
+    private static final int PAGE_BTN_HOVER = 0xFF999999;
+    @Unique
+    private static final int PAGE_BTN_DISABLED = 0x40666666;
+    @Unique
+    private static final int PAGE_TEXT_COLOR = 0xFF555555;
+
+    @Unique
+    private void drawPageControls(GuiGraphics graphics, Font font, int bgWidth, int bgHeight,
+                                  int currentPage, int totalPages, double mouseX, double mouseY) {
+        boolean showArrows = CJCConfigs.showPageArrows();
+        PageControls c = new PageControls(font, bgWidth, bgHeight, currentPage, totalPages, showArrows);
+
+        graphics.drawString(font, c.pageText, c.pageX, c.y, PAGE_TEXT_COLOR, false);
+
+        if (!showArrows) {
+            return;
+        }
+
+        boolean hoverPrev = c.canPrev && isOver(mouseX, mouseY, c.prevX, c.y, c.prevW, c.h);
+        boolean hoverNext = c.canNext && isOver(mouseX, mouseY, c.nextX, c.y, c.nextW, c.h);
+
+        int prevColor = c.canPrev ? (hoverPrev ? PAGE_BTN_HOVER : PAGE_BTN_ENABLED) : PAGE_BTN_DISABLED;
+        int nextColor = c.canNext ? (hoverNext ? PAGE_BTN_HOVER : PAGE_BTN_ENABLED) : PAGE_BTN_DISABLED;
+
+        graphics.drawString(font, c.prev, c.prevX, c.y, prevColor, false);
+        graphics.drawString(font, c.next, c.nextX, c.y, nextColor, false);
+    }
+
+    @Unique
+    private static boolean isOver(double mouseX, double mouseY, int x, int y, int w, int h) {
+        return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+    }
+
+    /**
+     * Parameter type must be {@link Object} (erased {@code IRecipeCategory} signature).
+     * A mixin-merged method does not get javac's synthetic bridge for a typed recipe param.
+     */
+    public boolean handleInput(Object recipeObj, double mouseX, double mouseY, InputConstants.Key input) {
+        if (!(recipeObj instanceof SequencedAssemblyRecipe recipe)) {
+            return false;
+        }
+
+        if (input.getType() == InputConstants.Type.KEYSYM) {
+            int key = input.getValue();
+            if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_LEFT) {
+                boolean changed = SequencedAssemblyPageManager.previousPage(recipe);
+                if (changed) {
+                    RecipeViewerRefresh.schedule();
+                }
+                return changed;
+            }
+            if (key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_RIGHT) {
+                boolean changed = SequencedAssemblyPageManager.nextPage(recipe);
+                if (changed) {
+                    RecipeViewerRefresh.schedule();
+                }
+                return changed;
+            }
+            return false;
+        }
+
+        if (input.getType() != InputConstants.Type.MOUSE || input.getValue() != InputConstants.MOUSE_BUTTON_LEFT) {
+            return false;
+        }
+
+        if (!CJCConfigs.showPageArrows()) {
+            return false;
+        }
+
+        int totalPages = SequencedAssemblyPageManager.getTotalPages(recipe);
+        if (totalPages <= 1) {
+            return false;
+        }
+
+        Font font = Minecraft.getInstance().font;
+        IDrawable background = getBackgroundHelper();
+        PageControls c = new PageControls(
+                font,
+                background.getWidth(),
+                background.getHeight(),
+                SequencedAssemblyPageManager.getCurrentPage(recipe),
+                totalPages,
+                true
+        );
+
+        if (c.canPrev && isOver(mouseX, mouseY, c.prevX, c.y, c.prevW, c.h)) {
+            boolean changed = SequencedAssemblyPageManager.previousPage(recipe);
+            if (changed) {
+                RecipeViewerRefresh.schedule();
+            }
+            return changed;
+        }
+        if (c.canNext && isOver(mouseX, mouseY, c.nextX, c.y, c.nextW, c.h)) {
+            boolean changed = SequencedAssemblyPageManager.nextPage(recipe);
+            if (changed) {
+                RecipeViewerRefresh.schedule();
+            }
+            return changed;
+        }
+        return false;
     }
 
     @WrapMethod(
@@ -255,9 +425,8 @@ public abstract class SequencedAssemblyCategoryMixin {
         int minY = 90;
         int maxY = minY + 18;
         if (!singleOutput && mouseX >= minX && mouseX < maxX && mouseY >= minY && mouseY < maxY) {
-            float chance = recipe.getOutputChance();
             tooltip.add(junk);
-            tooltip.add(invokeChanceComponent(1 - chance));
+            tooltip.add(invokeChanceComponent(1 - recipe.getOutputChance()));
             return tooltip;
         }
 
@@ -270,25 +439,43 @@ public abstract class SequencedAssemblyCategoryMixin {
             return tooltip;
         }
 
+        int totalPages = SequencedAssemblyPageManager.getTotalPages(recipe);
+        if (totalPages > 1 && CJCConfigs.showPageArrows()) {
+            Font font = Minecraft.getInstance().font;
+            IDrawable background = getBackgroundHelper();
+            PageControls c = new PageControls(
+                    font,
+                    background.getWidth(),
+                    background.getHeight(),
+                    SequencedAssemblyPageManager.getCurrentPage(recipe),
+                    totalPages,
+                    true
+            );
+            if (c.canPrev && isOver(mouseX, mouseY, c.prevX, c.y, c.prevW, c.h)) {
+                tooltip.add(Component.literal("Previous page"));
+                return tooltip;
+            }
+            if (c.canNext && isOver(mouseX, mouseY, c.nextX, c.y, c.nextW, c.h)) {
+                tooltip.add(Component.literal("Next page"));
+                return tooltip;
+            }
+        }
+
         List<SequencedRecipe<?>> sequence = recipe.getSequence();
-        int totalSteps = sequence.size();
         int currentPage = SequencedAssemblyPageManager.getCurrentPage(recipe);
         int stepsPerPage = SequencedAssemblyPageManager.getStepsPerPage();
         int startIndex = currentPage * stepsPerPage;
-        int endIndex = Math.min(startIndex + stepsPerPage, totalSteps);
+        int endIndex = Math.min(startIndex + stepsPerPage, sequence.size());
 
         int pageWidth = 0;
         for (int i = startIndex; i < endIndex; i++) {
-            SequencedAssemblySubCategory subCategory = invokeGetSubCategory(sequence.get(i));
-            pageWidth += subCategory.getWidth() + STEP_MARGIN;
+            pageWidth += invokeGetSubCategory(sequence.get(i)).getWidth() + STEP_MARGIN;
         }
         if (pageWidth > 0) {
             pageWidth -= STEP_MARGIN;
         }
 
-        int bgWidth = getBackgroundHelper().getWidth();
-        int pageX = bgWidth / 2 - pageWidth / 2;
-
+        int pageX = getBackgroundHelper().getWidth() / 2 - pageWidth / 2;
         double relativeX = mouseX - pageX;
         for (int i = startIndex; i < endIndex; i++) {
             SequencedRecipe<?> sequencedRecipe = sequence.get(i);

@@ -1,1 +1,16 @@
-{"required":true,"minVersion":"0.8","package":"com.starion.createjeicompat.mixin","compatibilityLevel":"JAVA_17","mixins":[],"client":["SequencedAssemblyCategoryMixin","RecipesGuiMixin"],"injectors":{"defaultRequire":0}}
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.starion.createjeicompat.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "com.starion.createjeicompat.mixin.CreateJeiCompatMixinPlugin",
+  "client": [
+    "SequencedAssemblyCategoryMixin",
+    "RecipesGuiMixin",
+    "CreateJeiScrapPaddingMixin",
+    "CreateJeiRecipeHeightMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
