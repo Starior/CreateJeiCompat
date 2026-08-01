@@ -23,12 +23,9 @@ versionRange="[6.0.8,6.1.0)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.createjeicompat]]
-modId="mixinextras"
-mandatory=true
-versionRange="[0.3.6,)"
-ordering="NONE"
-side="BOTH"
+# Do not declare mixinextras here. Forge 1.20.1 does not expose it as a loadable mod id;
+# declaring it hard-fails dependency resolution. MixinExtras is still used at compile/runtime
+# via Forge/Mixin (compileOnly in build.gradle). Why Forge treats the id this way is unclear.
 
 # JEI is required: Create's sequenced-assembly UI is a JEI category; EMI shows it via JEmi.
 [[dependencies.createjeicompat]]

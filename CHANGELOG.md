@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note:** This changelog is for the Forge 1.20.1 branch. For NeoForge 1.21.1, see the `master` branch.
 
+## [1.0.2] - 2026-08-01
+
+### Fixed
+- Removed the `mixinextras` entry from `mods.toml`. Users reported that deleting those lines made 1.0.1 load on Forge 1.20.1; Forge does not treat MixinExtras as a normal mod id, so the required-dependency check fails. We do not fully understand why Forge resolves it that way — dropping the declaration matches what works in practice. MixinExtras usage in code is unchanged.
+
 ## [1.0.1] - 2026-07-27
 
 ### Added
