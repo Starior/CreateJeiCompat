@@ -17,7 +17,7 @@ public final class RecipeViewerRefresh {
     }
 
     private static void refreshNow() {
-        if (ModList.get().isLoaded("jei")) {
+        if (JeiPresence.hasRecipesGui()) {
             invokeStatic("com.starion.createjeicompat.jei.JeiLayoutRefresher", "refreshIfShowing");
         }
         if (ModList.get().isLoaded("emi")) {

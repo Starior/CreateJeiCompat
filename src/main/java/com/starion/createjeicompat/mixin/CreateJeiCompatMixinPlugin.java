@@ -1,5 +1,6 @@
 package com.starion.createjeicompat.mixin;
 
+import com.starion.createjeicompat.JeiPresence;
 import net.neoforged.fml.loading.LoadingModList;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
@@ -9,7 +10,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Applies JEI-targeting mixins only when JEI is present.
+ * Applies Create JEI-category mixins when a {@code jei} id is present (real JEI or TMRV).
+ * {@code RecipesGuiMixin} needs JEI's GUI class and is skipped for TMRV.
  * Uses {@link LoadingModList} because {@code ModList} is not initialized yet
  * during mixin prepare.
  */
@@ -26,7 +28,14 @@ public class CreateJeiCompatMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return LoadingModList.get().getModFileById("jei") != null;
+        if (LoadingModList.get().getModFileById("jei") == null) {
+            return false;
+        }
+        // RecipesGui is JEI-only. TMRV satisfies the jei id but does not ship that class.
+        if (mixinClassName.endsWith(".RecipesGuiMixin")) {
+            return JeiPresence.hasRecipesGui();
+        }
+        return true;
     }
 
     @Override

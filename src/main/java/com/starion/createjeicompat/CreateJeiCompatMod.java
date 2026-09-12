@@ -24,7 +24,8 @@ public class CreateJeiCompatMod {
         CJCConfigs.register(container);
         modEventBus.register(CJCConfigs.class);
 
-        if (ModList.get().isLoaded("jei")) {
+        // TMRV provides the jei mod id without JEI's RecipesGui. Do not load JeiScrollHandler then.
+        if (JeiPresence.hasRecipesGui()) {
             NeoForge.EVENT_BUS.register(new JeiScrollHandler());
         }
         if (ModList.get().isLoaded("emi")) {
